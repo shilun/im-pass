@@ -33,6 +33,7 @@
                 <directory>src/main/resources/</directory>
                 <includes>
                     <include>Dockerfile</include>
+                    <include>application.properties</include>
                 </includes>
                 <filtering>false</filtering>
                 <targetPath>${project.basedir}/target</targetPath>
