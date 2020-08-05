@@ -5,6 +5,7 @@ import com.common.security.DesDecrypter;
 import com.common.security.DesEncrypter;
 import com.common.security.MD5;
 import com.common.util.BeanCoper;
+import com.common.util.DateUtil;
 import com.common.util.RPCResult;
 import com.common.util.StringUtils;
 import com.passport.domain.AdminUserInfo;
@@ -21,6 +22,7 @@ import javax.annotation.Resource;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -115,7 +117,7 @@ public class AdminRPCServiceImpl extends StatusRpcServiceImpl implements AdminRP
 
     @Override
     public RPCResult<Boolean> changePass(String token, String oldPass, String newPass) {
-        String oldToken=token;
+        String oldToken = token;
         RPCResult<Boolean> result = new RPCResult<>();
         String key = MessageFormat.format(LOGIN_TOKEN, token);
         try {
@@ -152,17 +154,24 @@ public class AdminRPCServiceImpl extends StatusRpcServiceImpl implements AdminRP
 
     @Override
     public RPCResult<UserDTO> verificationToken(String token) {
-        String[] tokenParmas = DesDecrypter.decryptString(token, appTokenEncodeKey).split(":");
-        token = tokenParmas[1];
-        String pin = tokenParmas[0];
         RPCResult<UserDTO> result = new RPCResult<>();
-        String key = MessageFormat.format(LOGIN_TOKEN, token);
         try {
-            UserDTO o = (UserDTO) redisTemplate.opsForValue().get(key);
-            if (o != null) {
-                redisTemplate.expire(key, 1, TimeUnit.DAYS);
-                redisTemplate.expire(MessageFormat.format(LOGIN_PIN, pin), 1, TimeUnit.DAYS);
-                result.setData(o);
+            String[] tokenParmas = DesDecrypter.decryptString(token, appTokenEncodeKey).split(":");
+            token = tokenParmas[1];
+            String pin = tokenParmas[0];
+            String key = MessageFormat.format(LOGIN_TOKEN, token);
+            UserDTO userDTO = (UserDTO) redisTemplate.opsForValue().get(key);
+            if (userDTO != null) {
+                Date compareDate = DateUtil.Options.Hour.plugin(new Date(), -1);
+                Date dbDate = new Date(userDTO.getOverTime());
+                if (userDTO.getOverTime() == null || dbDate.before(compareDate)) {
+                    log.warn("refresh token");
+                    userDTO.setOverTime(DateUtil.Options.Day.plugin(new Date(), 1).getTime());
+                    redisTemplate.opsForValue().set(key, userDTO, 1, TimeUnit.DAYS);
+                    redisTemplate.expire(MessageFormat.format(LOGIN_PIN, userDTO.getPin()), 1, TimeUnit.DAYS);
+                }
+                result.setData(userDTO);
+                userDTO.setToken(token);
                 result.setSuccess(true);
                 return result;
             }

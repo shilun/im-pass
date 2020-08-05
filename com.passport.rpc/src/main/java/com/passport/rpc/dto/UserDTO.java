@@ -60,5 +60,8 @@ public class UserDTO extends AbstractDTO implements Serializable {
      */
     @ApiModelProperty("用户token")
     private String token;
-
+    /**
+     * 超时时间
+     */
+    private Long overTime;
 }

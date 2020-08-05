@@ -96,7 +96,7 @@ public class UserRPCServiceImpl extends StatusRpcServiceImpl implements UserRPCS
                 clientUserInfoService.findByPin(pin);
             }
 
-            if (userInfo == null || userInfo.getStatus()==false) {
+            if (userInfo == null || userInfo.getStatus() == false) {
                 throw new BizException("login.error", "账户异常");
             }
             if (!userInfo.getProxyId().equals(proxyId)) {
@@ -207,10 +207,16 @@ public class UserRPCServiceImpl extends StatusRpcServiceImpl implements UserRPCS
         String redisTokenKey = MessageFormat.format(LOGIN_TOKEN, data[1]);
         UserDTO userDTO = (UserDTO) redisTemplate.opsForValue().get(redisTokenKey);
         if (userDTO != null) {
-            redisTemplate.expire(redisTokenKey, 1, TimeUnit.DAYS);
-            redisTemplate.expire(MessageFormat.format(LOGIN_PIN, userDTO.getPin()), 1, TimeUnit.DAYS);
+            Date compareDate = DateUtil.Options.Hour.plugin(new Date(), -1);
+            Date dbDate = new Date(userDTO.getOverTime());
+            if (userDTO.getOverTime() == null || dbDate.before(compareDate)) {
+                log.warn("refresh token");
+                userDTO.setOverTime(DateUtil.Options.Day.plugin(new Date(), 1).getTime());
+                redisTemplate.opsForValue().set(redisTokenKey, userDTO, 1, TimeUnit.DAYS);
+                redisTemplate.expire(MessageFormat.format(LOGIN_PIN, userDTO.getPin()), 1, TimeUnit.DAYS);
+            }
             result.setData(userDTO);
-            (userDTO).setToken(token);
+            userDTO.setToken(token);
             result.setSuccess(true);
             return result;
         }
@@ -461,7 +467,7 @@ public class UserRPCServiceImpl extends StatusRpcServiceImpl implements UserRPCS
                 throw new BizException("phone.error", "电话号码错误 " + account);
             }
             ClientUserInfo entity = clientUserInfoService.findByPhone(proxyId, account);
-            if (entity != null && entity.getDelStatus()==false) {
+            if (entity != null && entity.getDelStatus() == false) {
                 log.error("该账号已经注册过了 " + account);
                 throw new BizException("该账号已经注册过");
             }

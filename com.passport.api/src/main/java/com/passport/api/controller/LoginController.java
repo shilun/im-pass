@@ -193,7 +193,6 @@ public class LoginController extends AbstractClientController {
         });
     }
 
-
     @RequestMapping(value = "reg", method = {RequestMethod.GET})
     @ApiOperation(value = "用户注册")
     public String reg(String q, Model model, HttpServletRequest request, HttpServletResponse response) {
