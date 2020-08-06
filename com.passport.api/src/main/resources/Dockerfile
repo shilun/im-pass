@@ -1,7 +1,7 @@
 FROM openjdk:8u232-jre-slim
 MAINTAINER im
 
-ENV PARAMS="-Xmx256m -Xms256m -Xmn128m -Xss256k"
+ENV PARAMS="-server -Xmx256m -Xms256m -Xmn128m -Xss256k"
 
 ADD app.jar /app.jar
 ADD application.properties /application.properties
